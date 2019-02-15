@@ -1,0 +1,412 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [],
+   "source": [
+    "#Load the librarys\n",
+    "import pandas as pd #To work with dataset\n",
+    "import numpy as np #Math library\n",
+    "import seaborn as sns #Graph library that use matplot in background\n",
+    "import matplotlib.pyplot as plt #to plot some parameters in seaborn\n",
+    "plt.ion()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 69,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "import prince\n",
+    "from scipy.cluster import hierarchy"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [],
+   "source": [
+    "import scipy\n",
+    "from scipy.cluster import hierarchy\n",
+    "import seaborn as sns\n",
+    "from sklearn.metrics import silhouette_samples, silhouette_score\n",
+    "from sklearn import preprocessing, model_selection, metrics, feature_selection\n",
+    "from sklearn import (manifold, datasets, decomposition, ensemble,\n",
+    "                     discriminant_analysis, random_projection)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [],
+   "source": [
+    "from sklearn.cluster import KMeans\n",
+    "#%matplotlib inline"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# I . Data Entry "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 179,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [],
+   "source": [
+    "df_credit = pd.read_csv(\"german_credit_data_risk.csv\",index_col=0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 180,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [],
+   "source": [
+    "df_credit = df_credit.fillna('unknown')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# II. Explore data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 187,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "#Let's look the Credit Amount column\n",
+    "interval = (18, 25, 35, 60, 120)\n",
+    "\n",
+    "cats = ['Student', 'Young', 'Adult', 'Senior']\n",
+    "df_credit[\"Age_cat\"] = pd.cut(df_credit.Age, interval, labels=cats)\n",
+    "\n",
+    "\n",
+    "df_good = df_credit[df_credit[\"Risk\"] == 'good']\n",
+    "df_bad = df_credit[df_credit[\"Risk\"] == 'bad']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 188,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "del df_credit['Age']\n",
+    "#del df_credit['Credit amount']\n",
+    "#del df_credit['Duration']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 189,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "#del df_credit['Age_cat']"
+   ]
+  },
+  {
+   "cell_type": "raw",
+   "metadata": {
+    "collapsed": false
+   },
+   "source": [
+    "df_credit = df_credit.rename(index=str, columns={\"Job_0\": \"unskilled and non-resident\", \"Job_1\": \"unskilled and resident\",\"Job_2\": \"skilled\", \"Job_3\": \"highly skilled\"})"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## MCA"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 190,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "mca = prince.MCA(\n",
+    "     n_components=2,\n",
+    "     n_iter=3,\n",
+    "     copy=False,\n",
+    "     check_input=True,\n",
+    "     engine='auto',\n",
+    "     random_state=42\n",
+    " )"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 191,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "MCA(check_input=True, copy=False, engine='auto', n_components=2, n_iter=3,\n",
+       "  random_state=42)"
+      ]
+     },
+     "execution_count": 191,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "mca.fit(df_credit)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 192,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "df = df_credit"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 193,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[0.0032730535514429145, 0.002860494518928061]\n",
+      "\n",
+      " 93.45454545454545\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(mca.explained_inertia_) ;\n",
+    "print('\\n',mca.total_inertia_)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 194,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [],
+   "source": [
+    "X_mca = mca.fit_transform(df_credit)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 195,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(1000, 2)"
+      ]
+     },
+     "execution_count": 195,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "X_mca.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 196,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "ax = mca.plot_coordinates(\n",
+    "     X=df_credit,\n",
+    "     ax=None,\n",
+    "     figsize=(6, 6),\n",
+    "     show_row_points=True,\n",
+    "     row_points_size=10,\n",
+    "     show_row_labels=False,\n",
+    "     show_column_points=True,\n",
+    "     column_points_size=30,\n",
+    "     show_column_labels=False,\n",
+    "     legend_n_cols=1\n",
+    " )"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 197,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [],
+   "source": [
+    "Z = hierarchy.linkage(X_mca, method='ward')\n",
+    "\n",
+    "plt.figure()\n",
+    "R = hierarchy.dendrogram(Z) # ,color_threshold = 14\n",
+    "#F = sch.fcluster(Z, 2, criterion='maxclust')\n",
+    "#print(np.arange(1, 37), \"\\n\", F)\n",
+    "plt.title(\"Dendogramme\")\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "list(df_credit)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "age_cat = list(set((df_credit['Age_cat'])))\n",
+    "sex_cat = list(set((df_credit['Sex'])))\n",
+    "job_cat = list(set((df_credit['Job'])))\n",
+    "housing_cat = list(set((df_credit['Housing'])))\n",
+    "acc_sav = list(set((df_credit['Saving accounts'])))\n",
+    "check_cat = list(set((df_credit['Checking account'])))\n",
+    "purp_cat = list(set((df_credit['Purpose'])))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "age2idx = {}\n",
+    "for counter, value in enumerate(age_cat):\n",
+    "    age2idx[value] = counter"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "sex2idx = {}\n",
+    "for counter, value in enumerate(sex_cat):\n",
+    "    sex2idx[value] = counter\n",
+    "\n",
+    "job2idx = {}\n",
+    "for counter, value in enumerate(job_cat):\n",
+    "    job2idx[value] = counter\n",
+    "\n",
+    "    \n",
+    "    "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 92,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [],
+   "source": [
+    "names = list(df_credit)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 101,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "8"
+      ]
+     },
+     "execution_count": 101,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "len(names)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "anaconda-cloud": {},
+  "kernelspec": {
+   "display_name": "Python [Anaconda3]",
+   "language": "python",
+   "name": "Python [Anaconda3]"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.5.2"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
